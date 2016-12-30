@@ -85,7 +85,7 @@ import java.util.List;
  */
 
 @Autonomous(name="Concept: Vuforia Navigation", group ="Concept")
-@Disabled
+//@Disabled
 public class VideoNavigationTest extends LinearOpMode {
 
     public static final String TAG = "Vuforia Sample";
@@ -135,16 +135,21 @@ public class VideoNavigationTest extends LinearOpMode {
          * example "StonesAndChips", datasets can be found in in this project in the
          * documentation directory.
          */
-        VuforiaTrackables stonesAndChips = this.vuforia.loadTrackablesFromAsset("StonesAndChips");
-        VuforiaTrackable redTarget = stonesAndChips.get(0);
-        redTarget.setName("RedTarget");  // Stones
+        VuforiaTrackables targets = this.vuforia.loadTrackablesFromAsset("FTC_2016-17");
+        VuforiaTrackable redTarget1 = targets.get(3);
+        redTarget1.setName("RedTarget1");  // Gears
+        VuforiaTrackable redTarget2 = targets.get(1);
+        redTarget2.setName("RedTarget2");  // Tools
 
-        VuforiaTrackable blueTarget  = stonesAndChips.get(1);
-        blueTarget.setName("BlueTarget");  // Chips
+
+        VuforiaTrackable blueTarget1  = targets.get(0);
+        blueTarget1.setName("BlueTarget1");  // Legos
+        VuforiaTrackable blueTarget2  = targets.get(2);
+        blueTarget2.setName("BlueTarget2");  // Wheels
 
         /** For convenience, gather together all the trackable objects in one easily-iterable collection */
         List<VuforiaTrackable> allTrackables = new ArrayList<VuforiaTrackable>();
-        allTrackables.addAll(stonesAndChips);
+        allTrackables.addAll(targets);
 
         /**
          * We use units of mm here because that's the recommended units of measurement for the
@@ -213,32 +218,52 @@ public class VideoNavigationTest extends LinearOpMode {
          * - Then we rotate it  90 around the field's Z access to face it away from the audience.
          * - Finally, we translate it back along the X axis towards the red audience wall.
          */
-        OpenGLMatrix redTargetLocationOnField = OpenGLMatrix
+
+        //Set Red Target 1 Location: Gears
+        OpenGLMatrix redTargetLocationOnField1 = OpenGLMatrix
                 /* Then we translate the target off to the RED WALL. Our translation here
                 is a negative translation in X.*/
-                .translation(-mmFTCFieldWidth/2, 0, 0)
+                .translation(-mmFTCFieldWidth / 2, -mmFTCFieldWidth / 12, 0)
                 .multiplied(Orientation.getRotationMatrix(
                         /* First, in the fixed (field) coordinate system, we rotate 90deg in X, then 90 in Z */
                         AxesReference.EXTRINSIC, AxesOrder.XZX,
                         AngleUnit.DEGREES, 90, 90, 0));
-        redTarget.setLocation(redTargetLocationOnField);
-        RobotLog.ii(TAG, "Red Target=%s", format(redTargetLocationOnField));
+        redTarget1.setLocation(redTargetLocationOnField1);
+        RobotLog.ii(TAG, "Red Target 1=%s", format(redTargetLocationOnField1));
+
+        //Set Red Target 2 Location: Tools
+        OpenGLMatrix redTargetLocationOnField2 = OpenGLMatrix
+                .translation(-mmFTCFieldWidth/2, mmFTCFieldWidth/4, 0)
+                .multiplied(Orientation.getRotationMatrix(
+                        AxesReference.EXTRINSIC, AxesOrder.XZX,
+                        AngleUnit.DEGREES, 90, 90, 0));
+        redTarget2.setLocation(redTargetLocationOnField2);
+        RobotLog.ii(TAG, "Red Target 2=%s", format(redTargetLocationOnField2));
 
        /*
         * To place the Stones Target on the Blue Audience wall:
         * - First we rotate it 90 around the field's X axis to flip it upright
         * - Finally, we translate it along the Y axis towards the blue audience wall.
         */
-        OpenGLMatrix blueTargetLocationOnField = OpenGLMatrix
+
+        //Set Blue Target 1 Location: Wheels
+        OpenGLMatrix blueTargetLocationOnField1 = OpenGLMatrix
                 /* Then we translate the target off to the Blue Audience wall.
                 Our translation here is a positive translation in Y.*/
-                .translation(0, mmFTCFieldWidth/2, 0)
+                .translation(mmFTCFieldWidth/12, mmFTCFieldWidth/2, 0)
                 .multiplied(Orientation.getRotationMatrix(
                         /* First, in the fixed (field) coordinate system, we rotate 90deg in X */
                         AxesReference.EXTRINSIC, AxesOrder.XZX,
                         AngleUnit.DEGREES, 90, 0, 0));
-        blueTarget.setLocation(blueTargetLocationOnField);
-        RobotLog.ii(TAG, "Blue Target=%s", format(blueTargetLocationOnField));
+        blueTarget1.setLocation(blueTargetLocationOnField1);
+        RobotLog.ii(TAG, "Blue Target 1=%s", format(blueTargetLocationOnField1));
+
+        //Set Blue Target 2 Location: Legos
+        OpenGLMatrix blueTargetLocationOnField2 = OpenGLMatrix
+                .translation(-mmFTCFieldWidth/4, mmFTCFieldWidth/2, 0)
+                .multiplied(Orientation.getRotationMatrix(
+                        AxesReference.EXTRINSIC, AxesOrder.XZX,
+                        AngleUnit.DEGREES, 90, 0, 0));
 
         /**
          * Create a transformation matrix describing where the phone is on the robot. Here, we
@@ -253,10 +278,10 @@ public class VideoNavigationTest extends LinearOpMode {
          * plane) is then CCW, as one would normally expect from the usual classic 2D geometry.
          */
         OpenGLMatrix phoneLocationOnRobot = OpenGLMatrix
-                .translation(mmBotWidth/2,0,0)
+                .translation(0,mmBotWidth/4,0)
                 .multiplied(Orientation.getRotationMatrix(
                         AxesReference.EXTRINSIC, AxesOrder.YZY,
-                        AngleUnit.DEGREES, -90, 0, 0));
+                        AngleUnit.DEGREES, 0, 0, 0));
         RobotLog.ii(TAG, "phone=%s", format(phoneLocationOnRobot));
 
         /**
@@ -264,8 +289,10 @@ public class VideoNavigationTest extends LinearOpMode {
          * listener is a {@link VuforiaTrackableDefaultListener} and can so safely cast because
          * we have not ourselves installed a listener of a different type.
          */
-        ((VuforiaTrackableDefaultListener)redTarget.getListener()).setPhoneInformation(phoneLocationOnRobot, parameters.cameraDirection);
-        ((VuforiaTrackableDefaultListener)blueTarget.getListener()).setPhoneInformation(phoneLocationOnRobot, parameters.cameraDirection);
+        ((VuforiaTrackableDefaultListener)redTarget1.getListener()).setPhoneInformation(phoneLocationOnRobot, parameters.cameraDirection);
+        ((VuforiaTrackableDefaultListener)redTarget2.getListener()).setPhoneInformation(phoneLocationOnRobot, parameters.cameraDirection);
+        ((VuforiaTrackableDefaultListener)blueTarget1.getListener()).setPhoneInformation(phoneLocationOnRobot, parameters.cameraDirection);
+        ((VuforiaTrackableDefaultListener)blueTarget2.getListener()).setPhoneInformation(phoneLocationOnRobot, parameters.cameraDirection);
 
         /**
          * A brief tutorial: here's how all the math is going to work:
@@ -292,7 +319,7 @@ public class VideoNavigationTest extends LinearOpMode {
         waitForStart();
 
         /** Start tracking the data sets we care about. */
-        stonesAndChips.activate();
+        targets.activate();
 
         while (opModeIsActive()) {
 
