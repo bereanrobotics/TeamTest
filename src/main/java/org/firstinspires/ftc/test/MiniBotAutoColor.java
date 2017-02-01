@@ -32,37 +32,136 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 package org.firstinspires.ftc.test;
 
-import android.graphics.Color;
-
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import edu.berean.robotics.robots.test.HardwareMiniBot;
 
-/**
- * This file provides  Telop driving for Aimbot.
- */
-
 @Autonomous(name="MiniBot: AutoColor", group="mini")
-@Disabled
+//@Disabled
 
 public class MiniBotAutoColor extends LinearOpMode{
 
-    /* Declare OpMode members. */
-
     HardwareMiniBot robot = new HardwareMiniBot(); // use the class created to define a Aimbot's hardware
+    private ElapsedTime runtime = new ElapsedTime();  // required for delay
 
 
     static final double     FORWARD_SPEED = 0.6;
     static final double     TURN_SPEED    = 0.5;
+    static final double     WHITE_THRESHOLD = 0.1;  // spans between 0.1 - 0.5 from dark to light
+    static final double     DRIVE_SPEED             = 0.15;
+    static final double     SLOW_DRIVE_SPEED             = 0.1;
+
+    private double lightmax = 0.0;
+
+    public void encoderDrive(double speed,
+                             double leftInches, double rightInches,
+                             double timeoutS) throws InterruptedException {
+
+        // Ensure that the opmode is still active
+        if (opModeIsActive()) {
+            robot.setTargetPosition(leftInches, rightInches);
+            robot.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            robot.drive(speed, speed);
+            // keep looping while we are still active, and there is time left, and both motors are running.
+            // reset the timeout time and start motion.
+            runtime.reset();
+            while (opModeIsActive() && (runtime.seconds() < timeoutS) && robot.isDriving()) {
+                // Allow time for other processes to run.
+                idle();
+            }
+        }
+
+        // Stop all motion;
+        robot.drive(0,0);
+        // Turn off RUN_TO_POSITION
+        robot.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
+
+
+    private boolean driveToLine(double speed, double timeout)throws InterruptedException {
+        // run until the white line is seen OR the driver presses STOP;
+        robot.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robot.drive(speed, speed);
+        runtime.reset();
+        double light = robot.lightSensor.getLightDetected();
+
+        while (opModeIsActive() && (runtime.seconds() < timeout) && (light < WHITE_THRESHOLD)) {
+
+            if (light > lightmax) lightmax = light;
+            // Display the light level while we are looking for the line
+            telemetry.addData("Drive Level", robot.lightSensor.getLightDetected());
+            telemetry.update();
+            light = robot.lightSensor.getLightDetected();
+            idle();
+        }
+        robot.drive(0, 0);
+        return (light < WHITE_THRESHOLD);
+    }
+
+    private void followLine(double speed, double timeout)throws InterruptedException {
+
+        robot.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        runtime.reset();
+
+        while (opModeIsActive() && (runtime.seconds() < timeout) ) {
+            double light = robot.lightSensor.getLightDetected();
+            if (light > lightmax) lightmax = light;
+            double level = light / lightmax;
+            double leftSpeed = speed*level;
+            double rightSpeed = speed-(speed*level);
+            robot.drive(leftSpeed, rightSpeed);
+
+            double distance = robot.distance.getUltrasonicLevel();
+
+
+            // Display the light level while we are looking for the line
+            telemetry.addData("Follow Level", light);
+            telemetry.addData("LeftSpeed", leftSpeed);
+            telemetry.addData("RightSpeed", rightSpeed);
+            telemetry.addData("Distance", distance);
+            telemetry.update();
+
+            if (distance > 2 && distance < 10) break;
+
+            //if (robot.colorSensor.getColorNumber() > 0) break;
+            idle();
+        }
+        robot.drive(0, 0);
+        return;
+    }
+
+    private void watchColor(double timeout)throws InterruptedException {
+
+        runtime.reset();
+
+        while (opModeIsActive() && (runtime.seconds() < timeout)) {
+            // this logic assumes the color sensor is on the right
+            int color = robot.colorSensor.getColorNumber();
+
+            if (color == robot.colorSensor.SENSOR_RED) {
+                robot.redLED(true);
+                robot.blueLED(false);
+            } else if (color == robot.colorSensor.SENSOR_BLUE) {
+                robot.redLED(false);
+                robot.blueLED(true);
+            } else {
+                robot.redLED(false);
+                robot.blueLED(false);
+            }
+            telemetry.addData("Watch light", "%f", robot.lightSensor.getLightDetected());
+            telemetry.addData("ColorNumber: ", "%d", color);
+            telemetry.addData("Distance", "%f", robot.distance.getUltrasonicLevel());
+            updateTelemetry(telemetry);
+            idle();
+        }
+    }
+
 
     @Override
     public void runOpMode() throws InterruptedException {
-
-        // hsvValues is an array that will hold the hue, saturation, and value information.
-        float hsvValues[] = {0F,0F,0F};
-
         /*
          * Initialize the drive system variables.
          * The init() method of the hardware class does all the work here
@@ -71,72 +170,11 @@ public class MiniBotAutoColor extends LinearOpMode{
 
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
-
-        // Step 1:  Drive forward for 1 seconds
-        /*robot.frontLeftMotor.setPower(FORWARD_SPEED);
-        robot.backLeftMotor.setPower(FORWARD_SPEED);
-        robot.frontRightMotor.setPower(FORWARD_SPEED);
-        sleep(1000);
-        // Step 2:  Spin right for 1.3 seconds
-        robot.frontLeftMotor.setPower(TURN_SPEED);
-        robot.backLeftMotor.setPower(TURN_SPEED);
-        robot.frontRightMotor.setPower(-TURN_SPEED);
-        robot.backRightMotor.setPower(-TURN_SPEED);
-        sleep(1000);
-        // Step 3:  Drive Backwards for 1 Second
-        robot.frontLeftMotor.setPower(-FORWARD_SPEED);
-        robot.backLeftMotor.setPower(-FORWARD_SPEED);
-        robot.frontRightMotor.setPower(-FORWARD_SPEED);
-        robot.backRightMotor.setPower(-FORWARD_SPEED);
-        sleep(1000);
-        // Step 4:  Stop and close the claw.
-        robot.frontLeftMotor.setPower(0);
-        robot.backLeftMotor.setPower(0);
-        robot.frontRightMotor.setPower(0);
-        robot.backRightMotor.setPower(0);*/
-        while(true) {
-
-            // convert the RGB values to HSV values.
-            Color.RGBToHSV(robot.colorSensor.red() * 8, robot.colorSensor.green() * 8, robot.colorSensor.blue() * 8, hsvValues);
-
-
-            if (hsvValues[0] <  50) {
-                robot.pusherLeft.setPosition(0.5);
-                /*telemetry.addData("redFound", "%d", robot.colorSensor.red());
-                telemetry.addData("pusherLeft", "%.2f", 0.5);
-                updateTelemetry(telemetry);
-                */
-                idle();
-                sleep(3000);
-                robot.pusherLeft.setPosition(0.1);
-                idle();
-                sleep(1000);
-
-            } else if (hsvValues[0] > 200) {
-                robot.pusherRight.setPosition(0.5);
-                /*telemetry.addData("blueFound", "%d", robot.colorSensor.blue());
-                telemetry.addData("pusherRight", "%.2f", 0.5);
-                updateTelemetry(telemetry);
-                */
-
-                robot.pusherRight.setPosition(0.1);
-                idle();
-                sleep(1000);
-            }
-            //telemetry.addData("red", "%d", robot.colorSensor.red());
-            //telemetry.addData("blue", "%d", robot.colorSensor.blue());
-            telemetry.addData("Hue", hsvValues[0]);
-            updateTelemetry(telemetry);
-            idle();
-            sleep(500);
+        if (opModeIsActive()) {
+            driveToLine(DRIVE_SPEED, 50000);
+            followLine(SLOW_DRIVE_SPEED,50000);
+            watchColor(10000);
         }
-
-
-        /*robot.frontLeftMotor.setPower(FORWARD_SPEED);
-        robot.frontRightMotor.setPower(FORWARD_SPEED);
-        sleep(500);
-        robot.frontLeftMotor.setPower(0);
-        robot.frontRightMotor.setPower(0);*/
     }
 
 }

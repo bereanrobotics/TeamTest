@@ -32,7 +32,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 package org.firstinspires.ftc.test;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -43,14 +42,13 @@ import edu.berean.robotics.robots.test.HardwareMiniBot;
  */
 
 @TeleOp(name="Minibot: Teleop", group="mini")
-@Disabled
+//@Disabled
 public class MiniBotTeleop extends OpMode{
 
     /* Declare OpMode members. */
 
     HardwareMiniBot robot = new HardwareMiniBot(); // use the class created to define a Aimbot's hardware
     boolean sniperModeOn = false;
-
 
     /*
      * Code to run ONCE when the driver hits INIT
@@ -80,6 +78,7 @@ public class MiniBotTeleop extends OpMode{
     @Override
     public void start() {
     }
+
 
     /*
      * Code to run REPEATEDLY after the driver hits PLAY but before they hit STOP
@@ -120,12 +119,32 @@ public class MiniBotTeleop extends OpMode{
             robot.pusherRight.setPosition(0.6);
         else
             robot.pusherRight.setPosition(0);
+
+
 **/
+        // this logic assumes the color sensor is on the right
+        int color = robot.colorSensor.getColorNumber();
+
+        if (color == robot.colorSensor.SENSOR_RED) {
+            robot.redLED(true);
+            robot.blueLED(false);
+        } else if (color == robot.colorSensor.SENSOR_BLUE) {
+            robot.redLED(false);
+            robot.blueLED(true);
+          } else {
+            robot.redLED(false);
+            robot.blueLED(false);
+
+        }
+
+
         // Send telemetry message to signify robot running;
         //telemetry.addData("claw",  "Offset = %.2f", clawOffset);
         telemetry.addData("left",  "%.2f", left);
         telemetry.addData("right", "%.2f", right);
         telemetry.addData("light", "%f", robot.lightSensor.getLightDetected());
+        telemetry.addData("ColorNumber: %d", color);
+
         updateTelemetry(telemetry);
     }
 
