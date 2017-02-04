@@ -75,7 +75,7 @@ public class MiniBotAutoColor extends LinearOpMode{
         }
 
         // Stop all motion;
-        robot.drive(0,0);
+        robot.drive(0, 0);
         // Turn off RUN_TO_POSITION
         robot.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
@@ -97,11 +97,23 @@ public class MiniBotAutoColor extends LinearOpMode{
             light = robot.lightSensor.getLightDetected();
             idle();
         }
+        //slowly back up to find edge of line
+        robot.drive(-0.05,-0.05);
+        while (opModeIsActive() && (light > lightmax/2)) {
+
+            if (light > lightmax) lightmax = light;
+            // Display the light level while we are looking for the line
+            telemetry.addData("Finding Edge", robot.lightSensor.getLightDetected());
+            telemetry.update();
+            light = robot.lightSensor.getLightDetected();
+            idle();
+        }
+
         robot.drive(0, 0);
         return (light < WHITE_THRESHOLD);
     }
 
-    private void followLine(double speed, double timeout)throws InterruptedException {
+    private void followLine(double speed, double timeout, boolean rightHand)throws InterruptedException {
 
         robot.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         runtime.reset();
@@ -110,8 +122,15 @@ public class MiniBotAutoColor extends LinearOpMode{
             double light = robot.lightSensor.getLightDetected();
             if (light > lightmax) lightmax = light;
             double level = light / lightmax;
-            double leftSpeed = speed*level;
-            double rightSpeed = speed-(speed*level);
+            double leftSpeed;
+            double rightSpeed;
+            if (rightHand) {
+                leftSpeed = speed*level;
+                rightSpeed = speed-(speed*level);
+            } else {
+                leftSpeed = speed-(speed*level);
+                rightSpeed = speed*level;
+            }
             robot.drive(leftSpeed, rightSpeed);
 
             double distance = robot.distance.getUltrasonicLevel();
@@ -176,7 +195,7 @@ public class MiniBotAutoColor extends LinearOpMode{
         waitForStart();
         if (opModeIsActive()) {
             driveToLine(DRIVE_SPEED, 50000);
-            followLine(SLOW_DRIVE_SPEED,50000);
+            followLine(SLOW_DRIVE_SPEED,50000,true);
             watchColor(10000);
         }
     }
