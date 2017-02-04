@@ -135,7 +135,11 @@ public class MiniBotAutoColor extends LinearOpMode{
 
     private void watchColor(double timeout)throws InterruptedException {
 
+        encoderDrive(.15, 2, 2, 10); // move forward 2 inches
+        encoderDrive(.15, -2, -2, 10); // move forward 2 inches
+        //encoderDrive(.15, 2, 2, 10); // move forward 2 inches
         runtime.reset();
+
 
         while (opModeIsActive() && (runtime.seconds() < timeout)) {
             // this logic assumes the color sensor is on the right
